@@ -21,7 +21,6 @@ public class ApplicationDao {
 
             String insertQuery = "insert into users(id,full_name,username,password,role,balance) values(?,?,?,?,?,?)";
 
-            // set parameters with PreparedStatement
             PreparedStatement statement = connection.prepareStatement(insertQuery);
             statement.setInt(1, getNextId("users"));
             statement.setString(2, user.getFullName());
@@ -30,10 +29,8 @@ public class ApplicationDao {
             statement.setString(5, user.getRole());
             statement.setInt(6, user.getBalance());
 
-
-            // execute the statement
             rowsAffected = statement.executeUpdate();
-
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -55,6 +52,7 @@ public class ApplicationDao {
             while (set.next()) {
                 isValidUser = true;
             }
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -79,6 +77,7 @@ public class ApplicationDao {
                 user.setRole(resultSet.getString("role"));
                 user.setBalance(resultSet.getInt("balance"));
             }
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -98,6 +97,7 @@ public class ApplicationDao {
             while (resultSet.next()) {
                 id = resultSet.getInt(1) + 1;
             }
+            connection.close();
             return id;
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -121,6 +121,7 @@ public class ApplicationDao {
                 history.setWinMoney(resultSet.getInt("win_money"));
                 historyList.add(history);
             }
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -140,7 +141,7 @@ public class ApplicationDao {
             while (resultSet.next()) {
                 id = resultSet.getInt("id");
             }
-
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -160,7 +161,7 @@ public class ApplicationDao {
             while (resultSet.next()) {
                 id = resultSet.getInt("id");
             }
-
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -180,7 +181,7 @@ public class ApplicationDao {
             while (resultSet.next()) {
                 id = resultSet.getInt("id");
             }
-
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -199,7 +200,7 @@ public class ApplicationDao {
             while (resultSet.next()) {
                 raceName = resultSet.getString("name");
             }
-
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -218,7 +219,7 @@ public class ApplicationDao {
             while (resultSet.next()) {
                 horseName = resultSet.getString("name");
             }
-
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -239,6 +240,7 @@ public class ApplicationDao {
             statement.setBoolean(5, true);
 
             statement.execute();
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -263,7 +265,7 @@ public class ApplicationDao {
             if (ism != null) {
                 exists = true;
             }
-
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -284,7 +286,7 @@ public class ApplicationDao {
             while (resultSet.next()) {
                 role = resultSet.getString("role");
             }
-
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -304,6 +306,7 @@ public class ApplicationDao {
             while (resultSet.next()) {
                 balance = resultSet.getInt("balance");
             }
+            connection.close();
             if (balance < bettingMoney)
                 return false;
         } catch (SQLException exception) {
@@ -325,6 +328,7 @@ public class ApplicationDao {
             statement.setString(6, horse_position);
 
             rowsAffected = statement.executeUpdate();
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -343,6 +347,11 @@ public class ApplicationDao {
                 statement = connection.prepareStatement(sql);
                 statement.setInt(1, bettingMoney);
                 statement.execute();
+
+                addHistory(getRaceId(race), getUserId(fromUsername), -1 *bettingMoney);
+                addHistory(getRaceId(race), getUserId("abboskhan"), bettingMoney);
+
+                connection.close();
             } catch (SQLException exception) {
                 exception.printStackTrace();
             }
@@ -368,6 +377,7 @@ public class ApplicationDao {
                 race.setStartDate(resultSet.getDate("start_date"));
                 racesList.add(race);
             }
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -392,6 +402,7 @@ public class ApplicationDao {
                 race.setStartDate(resultSet.getDate("start_date"));
                 racesList.add(race);
             }
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -413,6 +424,7 @@ public class ApplicationDao {
                 horse.setName(resultSet.getString("name"));
                 horsesList.add(horse);
             }
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -433,6 +445,7 @@ public class ApplicationDao {
             statement.setInt(4, coefficient);
 
             rowsAffected = statement.executeUpdate();
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -445,8 +458,9 @@ public class ApplicationDao {
         Map<String, List<RaceResults>> resultsMap = new HashMap<>();
         List<Races> generatedRaces = getGeneratedRaces();
         List<Horses> horseList = getHorseList();
-        Connection connection = DBConnection.getConnectionToDatabase();
         for (Races race : generatedRaces) {
+            Connection connection = DBConnection.getConnectionToDatabase();
+
             List<RaceResults> list = new ArrayList<>();
             try {
                 String sql = "select * from race_results where race_id=?";
@@ -461,11 +475,14 @@ public class ApplicationDao {
                     raceResults.setPosition(resultSet.getInt("position"));
                     list.add(raceResults);
                 }
+                connection.close();
             } catch (SQLException exception) {
                 exception.printStackTrace();
             }
             resultsMap.put(race.getName(), list);
+
         }
+
         return resultsMap;
     }
 
@@ -476,9 +493,9 @@ public class ApplicationDao {
         List<Horses> horseList = getHorseList();
         List<Integer> positionList = new ArrayList<Integer>();
         UniqueRng rng = new UniqueRng(10);
-        Connection connection = DBConnection.getConnectionToDatabase();
         int race_id = getRaceId(race_name);
         try {
+            Connection connection = DBConnection.getConnectionToDatabase();
             for (Horses horse : horseList) {
 
                 int horse_position = rng.next();
@@ -497,9 +514,10 @@ public class ApplicationDao {
             if (rowsAffected == 0) {
                 status = false;
             }
+            connection.close();
         } catch (SQLException exception) {
             try {
-                connection = DBConnection.getConnectionToDatabase();
+                Connection connection = DBConnection.getConnectionToDatabase();
                 String query = "DELETE FROM race_results WHERE race_id=?";
                 PreparedStatement statement = connection.prepareStatement(query);
                 statement.setInt(1, race_id);
@@ -524,6 +542,7 @@ public class ApplicationDao {
             statement.setBoolean(1, false);
             statement.setString(2, race_name);
             statement.execute();
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -536,7 +555,12 @@ public class ApplicationDao {
         try {
             Connection connection = DBConnection.getConnectionToDatabase();
 
-            String insertQuery = "select distinct races.id, horses.id, position,betting_race.horse_position,betting_race.betting_money,betting_race.user_id\n" +
+            String insertQuery = "select distinct races.id race_id,\n" +
+                    "                horses.id horse_id,\n" +
+                    "                position,\n" +
+                    "                betting_race.horse_position,\n" +
+                    "                betting_race.betting_money,\n" +
+                    "                betting_race.user_id\n" +
                     "from race_results\n" +
                     "         inner join races on (race_results.race_id = races.id)\n" +
                     "         inner join horses on (race_results.horse_id = horses.id)\n" +
@@ -550,13 +574,14 @@ public class ApplicationDao {
             while (resultSet.next()) {
                 MoneyTranferDto tranferDto = new MoneyTranferDto();
                 tranferDto.setUser_id(resultSet.getInt("user_id"));
-                tranferDto.setRace_id(resultSet.getInt("races_id"));
-                tranferDto.setHorse_id(resultSet.getInt("horses_id"));
-                tranferDto.setBetting_money(resultSet.getInt("betting_money"));
-                tranferDto.setResult_position(resultSet.getInt("position"));
-                tranferDto.setBet_position(resultSet.getString("horse_position"));
+                tranferDto.setRace_id(resultSet.getInt(1));
+                tranferDto.setHorse_id(resultSet.getInt(2));
+                tranferDto.setResult_position(resultSet.getInt(3));
+                tranferDto.setBet_position(resultSet.getString(4));
+                tranferDto.setBetting_money(resultSet.getInt(5));
                 tranferList.add(tranferDto);
             }
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -578,39 +603,82 @@ public class ApplicationDao {
 
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
-                int horse_id=resultSet.getInt("horse_id");
+                int horse_id = resultSet.getInt("horse_id");
                 map.remove(horse_id);
-                map.put(horse_id,resultSet.getInt("coefficient_degree"));
+                map.put(horse_id, resultSet.getInt("coefficient_degree"));
             }
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
 
+        int sumMoney = 0;
         for (MoneyTranferDto tranferDto : tranferList) {
-            if (tranferDto.getBet_position().equals("first_three_winners")){
-                if (tranferDto.getResult_position()==1||tranferDto.getResult_position()==3||tranferDto.getResult_position()==3){
-                    sendMoney(tranferDto.getUser_id(),map.get(tranferDto.getHorse_id())*tranferDto.getBetting_money());
+            if (tranferDto.getBet_position().equals("first_three_winners")) {
+                if (tranferDto.getResult_position() == 1 || tranferDto.getResult_position() == 2 || tranferDto.getResult_position() == 3) {
+                    sendMoney(tranferDto.getUser_id(), map.get(tranferDto.getHorse_id()) * tranferDto.getBetting_money());
+                    sumMoney += tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id());
+                    addHistory(tranferDto.getRace_id(), tranferDto.getUser_id(), tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id()));
+                    addHistory(tranferDto.getRace_id(), getUserId("abboskhan"), -1 * tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id()));
                 }
-            }else {
-                if (tranferDto.getResult_position()==Integer.valueOf(tranferDto.getBet_position())){
-                    sendMoney(tranferDto.getUser_id(),map.get(tranferDto.getHorse_id())*tranferDto.getBetting_money());
+            } else {
+                if (tranferDto.getResult_position() == Integer.valueOf(tranferDto.getBet_position())) {
+                    sendMoney(tranferDto.getUser_id(), map.get(tranferDto.getHorse_id()) * tranferDto.getBetting_money());
+                    sumMoney += tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id());
+                    addHistory(tranferDto.getRace_id(), tranferDto.getUser_id(), tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id()));
+                    addHistory(tranferDto.getRace_id(), getUserId("abboskhan"), -1 * tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id()));
                 }
             }
+
         }
+
+        changeAdminBalance(sumMoney);
     }
 
-    public void sendMoney(Integer from_user_id,Integer moneyAmount){
+    public void sendMoney(Integer from_user_id, Integer moneyAmount) {
         try {
             Connection connection = DBConnection.getConnectionToDatabase();
 
-            String insertQuery = "select race_id,horse_id,coefficient_degree from book_making\n" +
-                    "inner join races on (book_making.race_id = races.id)\n" +
-                    "where races.name=?";
+            String insertQuery = "update users set balance=balance+? where id=?;";
 
             PreparedStatement statement = connection.prepareStatement(insertQuery);
-            statement.setString(1, race_name);
+            statement.setInt(1, moneyAmount);
+            statement.setInt(2, from_user_id);
+            statement.executeUpdate();
+            connection.close();
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+        }
+    }
 
+    public void changeAdminBalance(int moneyAmount) {
+        try {
+            Connection connection = DBConnection.getConnectionToDatabase();
 
+            String insertQuery = "update users set balance=balance-? where role='ADMIN'";
+
+            PreparedStatement statement = connection.prepareStatement(insertQuery);
+            statement.setInt(1, moneyAmount);
+            statement.executeUpdate();
+            connection.close();
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    public void addHistory(int race_id, int user_id, int wonMoney) {
+        try {
+            Connection connection = DBConnection.getConnectionToDatabase();
+
+            String insertQuery = "insert into history(id,user_id,race_id,win_money) values(?,?,?,?)";
+
+            PreparedStatement statement = connection.prepareStatement(insertQuery);
+            statement.setInt(1, getNextId("history"));
+            statement.setInt(2, user_id);
+            statement.setInt(3, race_id);
+            statement.setInt(4, wonMoney);
+            statement.executeUpdate();
+            connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
