@@ -21,18 +21,25 @@ public class AuthenticationFilter implements Filter {
             throws IOException, ServletException {
 
         HttpServletRequest request = (HttpServletRequest) arg0;
-        if (request.getRequestURI().contains("getProfileDetails")
-                || request.getRequestURI().contains("createRace")) {
+        if (request.getRequestURI().contains("getProfileDetails")) {
             HttpSession session = request.getSession();
             if (session.getAttribute("username") == null) {
                 request.getRequestDispatcher("html/login.jsp").forward(request, arg1);
             }
         }
-        if (request.getRequestURI().contains("createRace")) {
+        if (request.getRequestURI().contains("createRace")||request.getRequestURI().contains("generateRace")||request.getRequestURI().contains("racesResults")) {
             HttpSession session = request.getSession();
             ApplicationDao dao = new ApplicationDao();
 
             if (!dao.getRoleByUsername(String.valueOf(session.getAttribute("username"))).equals("ADMIN")) {
+                request.getRequestDispatcher("html/error.jsp").forward(request, arg1);
+            }
+        }
+        if (request.getRequestURI().contains("bookMakerPage")) {
+            HttpSession session = request.getSession();
+            ApplicationDao dao = new ApplicationDao();
+
+            if (!dao.getRoleByUsername(String.valueOf(session.getAttribute("username"))).equals("BOOK_MAKER")) {
                 request.getRequestDispatcher("html/error.jsp").forward(request, arg1);
             }
         }
