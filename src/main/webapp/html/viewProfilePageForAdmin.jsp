@@ -43,7 +43,7 @@
     <tr>
         <td><%= historyList.get(i).getRace() %>
         </td>
-        <td>ishladi<%=historyList.get(i).getWinMoney() %>
+        <td><%=historyList.get(i).getWinMoney() %>
         </td>
     </tr>
     <%}%>

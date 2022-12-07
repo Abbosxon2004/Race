@@ -25,18 +25,15 @@
     <th>Balance</th>
 
     <%
-        for (User user : userList) {
-            request.getSession().setAttribute("changingUsername", user.getUsername());
-    %>
+        for (User user : userList) {%>
 
     <tr>
         <div>
             <td><%= user.getFullName()%>
             </td>
-            <%--            <td><a href="http://localhost:8080/Race_war_exploded/userProfile?changingUsername=<%= user.getUsername() %>"><%= user.getUsername() %>--%>
-            <%--            </a>--%>
-            <%--            </td>--%>
-            <td><%= user.getUsername() %>
+            <td>
+                <a href="http://localhost:8080/Race_war_exploded/userProfile?viewingUsername=<%=user.getUsername()%>"><%= user.getUsername() %>
+                </a>
             </td>
             <td><%= user.getRole() %>
             </td>
