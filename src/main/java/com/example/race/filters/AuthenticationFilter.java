@@ -27,7 +27,10 @@ public class AuthenticationFilter implements Filter {
                 request.getRequestDispatcher("html/login.jsp").forward(request, arg1);
             }
         }
-        if (request.getRequestURI().contains("createRace")||request.getRequestURI().contains("generateRace")||request.getRequestURI().contains("racesResults")) {
+        if (request.getRequestURI().contains("createRace")
+                || request.getRequestURI().contains("generateRace")
+                || request.getRequestURI().contains("racesResults")
+                || request.getRequestURI().contains("userList")) {
             HttpSession session = request.getSession();
             ApplicationDao dao = new ApplicationDao();
 

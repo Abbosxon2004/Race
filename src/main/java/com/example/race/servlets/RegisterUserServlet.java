@@ -12,14 +12,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.MessageFormat;
 
 
 @WebServlet("/register")
 public class RegisterUserServlet extends HttpServlet {
 
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    public void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
         // collect all form data
         String fullName = req.getParameter("fullName");
@@ -28,9 +28,9 @@ public class RegisterUserServlet extends HttpServlet {
         Integer balance = 10000;
 
         ApplicationDao dao = new ApplicationDao();
-        boolean existsUser = dao.existsUser(username);
+
         String infoMessage = null;
-        if (!existsUser) {
+
             // fill it up in a User bean
             User user = new User();
             user.setFullName(fullName);
@@ -47,12 +47,11 @@ public class RegisterUserServlet extends HttpServlet {
             // prepare an information message for user about the success or failure of the operation
 
             if (rows == 0) {
-                infoMessage = "Sorry, an error occurred!";
+                infoMessage = "User already exists, Please try again!";
             } else {
                 infoMessage = "User registered successfully!";
             }
-        } else
-            infoMessage = "User already exists, Please try again!";
+
         // write the message back to the page in client browser\
         req.setAttribute("message", infoMessage);
         req.getRequestDispatcher("/html/register.jsp").forward(req, resp);

@@ -15,9 +15,13 @@ import java.util.*;
 public class ApplicationDao {
 
     public int registerUser(User user) {
+
+        if (existsUser(user.getUsername()))
+            return 0;
         int rowsAffected = 0;
+        Connection connection = DBConnection.getConnectionToDatabase();
+
         try {
-            Connection connection = DBConnection.getConnectionToDatabase();
 
             String insertQuery = "insert into users(id,full_name,username,password,role,balance) values(?,?,?,?,?,?)";
 
@@ -33,6 +37,11 @@ public class ApplicationDao {
             connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
+            try {
+                connection.rollback();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         }
         return rowsAffected;
     }
@@ -226,7 +235,8 @@ public class ApplicationDao {
         return horseName;
     }
 
-    public void createRace(Races races) {
+    public int createRace(Races races) {
+        int succes = 0;
         try {
             Connection connection = DBConnection.getConnectionToDatabase();
 
@@ -239,11 +249,12 @@ public class ApplicationDao {
             statement.setDate(4, races.getBettingDeadlineDate());
             statement.setBoolean(5, true);
 
-            statement.execute();
+            succes = statement.executeUpdate();
             connection.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
+        return succes;
     }
 
     public boolean existsUser(String username) {
@@ -348,7 +359,7 @@ public class ApplicationDao {
                 statement.setInt(1, bettingMoney);
                 statement.execute();
 
-                addHistory(getRaceId(race), getUserId(fromUsername), -1 *bettingMoney);
+                addHistory(getRaceId(race), getUserId(fromUsername), -1 * bettingMoney);
                 addHistory(getRaceId(race), getUserId("abboskhan"), bettingMoney);
 
                 connection.close();
@@ -616,14 +627,14 @@ public class ApplicationDao {
         for (MoneyTranferDto tranferDto : tranferList) {
             if (tranferDto.getBet_position().equals("first_three_winners")) {
                 if (tranferDto.getResult_position() == 1 || tranferDto.getResult_position() == 2 || tranferDto.getResult_position() == 3) {
-                    sendMoney(tranferDto.getUser_id(), map.get(tranferDto.getHorse_id()) * tranferDto.getBetting_money());
+                    changeUserBalance(getUsernameById(tranferDto.getUser_id()), map.get(tranferDto.getHorse_id()) * tranferDto.getBetting_money());
                     sumMoney += tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id());
                     addHistory(tranferDto.getRace_id(), tranferDto.getUser_id(), tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id()));
                     addHistory(tranferDto.getRace_id(), getUserId("abboskhan"), -1 * tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id()));
                 }
             } else {
                 if (tranferDto.getResult_position() == Integer.valueOf(tranferDto.getBet_position())) {
-                    sendMoney(tranferDto.getUser_id(), map.get(tranferDto.getHorse_id()) * tranferDto.getBetting_money());
+                    changeUserBalance(getUsernameById(tranferDto.getUser_id()), map.get(tranferDto.getHorse_id()) * tranferDto.getBetting_money());
                     sumMoney += tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id());
                     addHistory(tranferDto.getRace_id(), tranferDto.getUser_id(), tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id()));
                     addHistory(tranferDto.getRace_id(), getUserId("abboskhan"), -1 * tranferDto.getBetting_money() * map.get(tranferDto.getHorse_id()));
@@ -635,21 +646,39 @@ public class ApplicationDao {
         changeAdminBalance(sumMoney);
     }
 
-    public void sendMoney(Integer from_user_id, Integer moneyAmount) {
+    public static String getUsernameById(int id) {
         try {
+            String username = "";
             Connection connection = DBConnection.getConnectionToDatabase();
-
-            String insertQuery = "update users set balance=balance+? where id=?;";
-
-            PreparedStatement statement = connection.prepareStatement(insertQuery);
-            statement.setInt(1, moneyAmount);
-            statement.setInt(2, from_user_id);
-            statement.executeUpdate();
+            String query = "select username from users where id=?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setInt(1, id);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                username = resultSet.getString(1);
+            }
             connection.close();
-        } catch (SQLException exception) {
-            exception.printStackTrace();
+            return username;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
+
+//    public void sendMoney(Integer from_user_id, Integer moneyAmount) {
+//        try {
+//            Connection connection = DBConnection.getConnectionToDatabase();
+//
+//            String insertQuery = "update users set balance=balance+? where id=?;";
+//
+//            PreparedStatement statement = connection.prepareStatement(insertQuery);
+//            statement.setInt(1, moneyAmount);
+//            statement.setInt(2, from_user_id);
+//            statement.executeUpdate();
+//            connection.close();
+//        } catch (SQLException exception) {
+//            exception.printStackTrace();
+//        }
+//    }
 
     public void changeAdminBalance(int moneyAmount) {
         try {
@@ -659,6 +688,22 @@ public class ApplicationDao {
 
             PreparedStatement statement = connection.prepareStatement(insertQuery);
             statement.setInt(1, moneyAmount);
+            statement.executeUpdate();
+            connection.close();
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    public void changeUserBalance(String username, int moneyAmount) {
+        try {
+            Connection connection = DBConnection.getConnectionToDatabase();
+
+            String insertQuery = "update users set balance=balance+? where username=?";
+
+            PreparedStatement statement = connection.prepareStatement(insertQuery);
+            statement.setInt(1, moneyAmount);
+            statement.setString(2, username);
             statement.executeUpdate();
             connection.close();
         } catch (SQLException exception) {
@@ -682,5 +727,31 @@ public class ApplicationDao {
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
+    }
+
+    public List<User> getAllUsersForAdmin() {
+        List<User> userList = new ArrayList<>();
+
+        try {
+            Connection connection = DBConnection.getConnectionToDatabase();
+
+            String sql = "select * from users";
+            PreparedStatement statement = connection.prepareStatement(sql);
+
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                User user = new User();
+                user.setFullName(resultSet.getString("full_name"));
+                user.setUsername(resultSet.getString("username"));
+                user.setPassword(resultSet.getString("password"));
+                user.setRole(resultSet.getString("role"));
+                user.setBalance(resultSet.getInt("balance"));
+                userList.add(user);
+            }
+            connection.close();
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+        }
+        return userList;
     }
 }

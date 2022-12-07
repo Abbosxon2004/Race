@@ -22,6 +22,7 @@
         <a href="createRace">Create new Race?</a>
         <a href="generateRace">Generate Races</a>
         <a href="racesResults">All results</a>
+        <a href="userList">All Users</a>
         <%} %>
 
         <%
